@@ -13,7 +13,7 @@
   )
 (defun get-names (faction)
   (loop for player in faction 
-        collect (cdr (assoc :game-name player))
+        collect (cdr (assoc :nickname player))
         ))
 (defun get-id (faction)
   (loop for player in faction 
@@ -21,15 +21,19 @@
         ))
 (defun process-game (game)
   (let* (
-        (ionsto-team-id (cdr (assoc :i-2 game)))
-        (players (cdr (assoc :teams game)))
-        (ionsto-win (equal (equal ionsto-team-id (cdr (assoc :team-id (first players)))) (equal "1" (cdr (assoc :i-17 (first players))))))
+        (winning-team-id (cdr (assoc :i-2 game)))
+        (teams (cdr (assoc :teams game)))
+        (team-1 (first teams))
+        (team-2 (second teams))
+        ;(ionsto-win (equal (equal ionsto-team-id (cdr (assoc :team-id (first players)))) (equal "1" (cdr (assoc :i-17 (first players))))))
         )
-    (print(cdr (assoc :team-id (first players))))
+    (print (first teams))
+;    (print (cdr (assoc :team-id (first players))))
 ;    (print ionsto-team-id)
+;    (print (cdr (assoc :i-17 (first players))))
 ;    (print players)
 ;    (print ionsto-win)
-    ionsto-win
+;    ionsto-win
     )
   )
 (defun get-data (id)
@@ -46,9 +50,9 @@
 (defparameter match-ids 
   (loop for i from 1 upto 21
         append (get-match-id i))) 
-(dolist (id match-ids)
-  (print (process-game (get-data id)))
-  )
+;(dolist (id match-ids)
+(print (process-game (get-data (first match-ids))))
+;  )
 ;(defparameter full-payload (loop for i from 1 upto 21
 ;    collect (with-open-file (in (merge-pathnames (cl-strings:join (list "history/" (write-to-string i) ".json"))))
 ;           (let ((data (json:decode-json in)))
