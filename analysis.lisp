@@ -1,9 +1,9 @@
 (ql:quickload :cl-json)
 (ql:quickload :cl-strings)
 (ql:quickload :drakma)
-(defparameter jc-id "76561198040942941")
-(defparameter regal-id "76561198062117176")
-(defparameter ionsto-id "76561198022699947")
+(defparameter jc-id"20778cc5-dde0-4333-8e13-efb5f2e6c317")
+(defparameter regal-id "25de947c-1ea8-4052-a3a4-b6c439f9659b")
+(defparameter ionsto-id "72457581-78d3-42a8-b01b-ec14ac2740e6")
 (defparameter json-file (merge-pathnames "faceit_history.json"))
 (defclass game ()
   (
@@ -11,29 +11,30 @@
    (team :initarg :team)
    )
   )
-(defun get-names (faction)
-  (loop for player in faction 
-        collect (cdr (assoc :nickname player))
-        ))
-(defun get-id (faction)
-  (loop for player in faction 
-        collect (cdr (assoc :gameid player))
-        ))
+(defstruct player-stat (win 0) (loss 0))
+(defun get-names (team)
+  (let ((faction (cdr (assoc :players team))))
+    (loop for player in faction 
+          collect (string-downcase (cdr (assoc :nickname player)))
+          )))
+(defun get-player-id (team)
+  (let ((faction (cdr (assoc :players team))))
+    (loop for player in faction 
+          collect (cdr (assoc :player-id player))
+          )))
 (defun process-game (game)
   (let* (
         (winning-team-id (cdr (assoc :i-2 game)))
         (teams (cdr (assoc :teams game)))
         (team-1 (first teams))
         (team-2 (second teams))
-        ;(ionsto-win (equal (equal ionsto-team-id (cdr (assoc :team-id (first players)))) (equal "1" (cdr (assoc :i-17 (first players))))))
+        (ionsto-t1 (not (find "ionsto" (get-names team-2) :test #'equalp)))
+        (ionsto-win (equal (not (find "ionsto" (get-names team-2) :test #'equalp)) (equal "1" (cdr (assoc :i-17 team-1)))))
         )
-    (print (first teams))
-;    (print (cdr (assoc :team-id (first players))))
-;    (print ionsto-team-id)
-;    (print (cdr (assoc :i-17 (first players))))
-;    (print players)
-;    (print ionsto-win)
-;    ionsto-win
+    (print (get-names team-1))
+    (print (get-names team-2))
+    (print ionsto-win)
+    (list ionsto-win (get-player-id (if ionsto-t1 team-1 team-2)))
     )
   )
 (defun get-data (id)
@@ -46,12 +47,38 @@
           (loop for m in data
                 collect (cdr (assoc :match-id m))
                 )))))
-
+(defun win-loss (player matchstats)
+  (let ((stats (make-player-stat)))
+    ( dolist (match matchstats)
+         (destructuring-bind (win players) match
+            (when (find player (second match) :test #'equal)
+              (if win 
+                  (setf(player-stat-win stats) (+ 1 (player-stat-win stats)))
+                  (setf(player-stat-loss stats) (+ 1 (player-stat-loss stats)))
+                  ) 
+              )
+            ))
+        stats
+    )
+  )
+(print "Match ids")
 (defparameter match-ids 
   (loop for i from 1 upto 21
         append (get-match-id i))) 
-;(dolist (id match-ids)
-(print (process-game (get-data (first match-ids))))
+(print "Match data")
+(defparameter match-data
+  (loop for id in match-ids and idx from 0
+        do (print idx)
+        collect (get-data id))) 
+(print "match stats")
+(defparameter match-stats 
+  (loop for data in match-data and idx from 0
+        do (print idx)
+        collect (process-game data))) 
+(print "Win loss")
+(print (win-loss ionsto-id match-stats))
+(print (win-loss regal-id  match-stats))
+(print (win-loss jc-id  match-stats))
 ;  )
 ;(defparameter full-payload (loop for i from 1 upto 21
 ;    collect (with-open-file (in (merge-pathnames (cl-strings:join (list "history/" (write-to-string i) ".json"))))
