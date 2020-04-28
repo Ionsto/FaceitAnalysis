@@ -1,9 +1,11 @@
 (ql:quickload :cl-json)
 (ql:quickload :cl-strings)
 (ql:quickload :drakma)
-(defparameter jc-id"20778cc5-dde0-4333-8e13-efb5f2e6c317")
 (defparameter regal-id "25de947c-1ea8-4052-a3a4-b6c439f9659b")
 (defparameter ionsto-id "72457581-78d3-42a8-b01b-ec14ac2740e6")
+(defparameter skirr-id "8097d7ff-0332-4d10-bcb9-92c52cb8ddcf")
+(defparameter cavv-id "d2d294b3-7834-4b5a-bb81-1ff83152ebec")
+(defparameter arty-id "ca478424-21ca-4047-b147-c5ddf0b26516")
 (defparameter json-file (merge-pathnames "faceit_history.json"))
 (defclass game ()
   (
@@ -40,13 +42,26 @@
 (defun get-data (id)
   (first (cl-json:decode-json-from-string 
           (octets-to-string (drakma:http-request (cl-strings:join (list "https://api.faceit.com/stats/v1/stats/matches/" id)))))))
+;(defun get-history (file-name)
+;    (with-open-file (in file-name)
+;        (let ((data (json:decode-json in)))
+;          (loop for m in data
+;                collect (cdr (assoc :match-id m))
+;                ))))
 (defun get-match-id (file-num)
   (let ((file-name (merge-pathnames (cl-strings:join (list "history/" (write-to-string file-num) ".json"))  )))
     (with-open-file (in file-name)
         (let ((data (json:decode-json in)))
           (loop for m in data
+                when (string= "5v5" (cdr (assoc :game-mode m)))
                 collect (cdr (assoc :match-id m))
                 )))))
+(defun get-match-id-dump (file-name)
+    (with-open-file (in file-name)
+        (let ((data (json:decode-json in)))
+          (loop for m in data
+                collect (cdr (assoc :match-id m))
+                ))))
 (defun win-loss (player matchstats)
   (let ((stats (make-player-stat)))
     ( dolist (match matchstats)
@@ -61,10 +76,11 @@
         stats
     )
   )
+(defun win-ratio (id)
+    (float (/ (player-stat-win (win-loss id match-stats)) (player-stat-loss (win-loss id match-stats))))
+  )
 (print "Match ids")
-(defparameter match-ids 
-  (loop for i from 1 upto 21
-        append (get-match-id i))) 
+(defparameter match-ids (get-match-id-dump json-file))
 (print "Match data")
 (defparameter match-data
   (loop for id in match-ids and idx from 0
@@ -78,7 +94,17 @@
 (print "Win loss")
 (print (win-loss ionsto-id match-stats))
 (print (win-loss regal-id  match-stats))
-(print (win-loss jc-id  match-stats))
+(print "ionsto")
+(print (win-ratio ionsto-id))
+(print "regal")
+(print (/ (win-ratio regal-id) (win-ratio ionsto-id)))
+(print "skirr")
+(print (/ (win-ratio skirr-id)(win-ratio ionsto-id)))
+(print "cavv")
+(print (/ (win-ratio cavv-id) (win-ratio ionsto-id)))
+(print "arty")
+(print (/ (win-ratio arty-id) (win-ratio ionsto-id)))
+
 ;  )
 ;(defparameter full-payload (loop for i from 1 upto 21
 ;    collect (with-open-file (in (merge-pathnames (cl-strings:join (list "history/" (write-to-string i) ".json"))))
